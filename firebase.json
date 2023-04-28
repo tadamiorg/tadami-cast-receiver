@@ -1,16 +1,12 @@
 {
-  "hosting": {
-    "public": "castTadami",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  }
+	"hosting": {
+		"public": "src",
+		"ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+		"rewrites": [
+			{
+				"source": "**",
+				"destination": "/index.html"
+			}
+		]
+	}
 }
