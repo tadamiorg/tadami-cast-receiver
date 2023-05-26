@@ -1,7 +1,5 @@
 import { LoadRequestData, MediaInformation } from "chromecast-caf-receiver/cast.framework.messages";
 
-export type NullableString = string | null;
-
 export interface StreamSource {
 	url: string;
 	quality: string;

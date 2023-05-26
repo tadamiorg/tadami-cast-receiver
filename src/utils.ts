@@ -1,4 +1,7 @@
 import { NetworkRequestInfo } from "chromecast-caf-receiver/cast.framework";
+import { UrlGenerator } from "./urlGenerator";
+
+/** String manipulation START **/
 
 export function substringBefore(originalString: string, delimiter: string) {
 	var index = originalString.indexOf(delimiter);
@@ -16,11 +19,35 @@ export function substringAfter(originalString: string, delimiter: string): strin
 	return originalString;
 }
 
-export const redirectHandler = (newUrlGen: (url: string) => string) => {
+/** String manipulation END **/
+
+/** Stream url to proxy url conversion START **/
+
+export const getRedirectUrl = (urlGenerator: UrlGenerator, requestUrl: string) => {
+	const proxyUrl = urlGenerator.getProxyUrl();
+	if (proxyUrl == null) {
+		return requestUrl;
+	}
+	const headers = urlGenerator.getHeaders();
+	const textToCheck = substringAfter(substringBefore(decodeURIComponent(requestUrl), "&"), "?url=");
+	if (textToCheck.includes(proxyUrl)) {
+		const endpoint = textToCheck.split("/").pop();
+		const newUrlParam = `${urlGenerator.getHlsUrl}/${endpoint}`;
+		requestUrl = decodeURIComponent(requestUrl).replace(textToCheck, newUrlParam);
+	}
+	if (requestUrl.startsWith(proxyUrl)) {
+		return requestUrl;
+	}
+	return `${proxyUrl}?url=${encodeURIComponent(requestUrl)}${headers != null ? `&headers=${encodeURIComponent(JSON.stringify(headers))}` : ""}`;
+};
+
+export const redirectHandler = (urlGenerator: UrlGenerator) => {
 	return (networkRequestInfo: NetworkRequestInfo): void => {
 		if (networkRequestInfo.url) {
-			const newUrl = newUrlGen(networkRequestInfo.url);
+			const newUrl = getRedirectUrl(urlGenerator, networkRequestInfo.url);
 			networkRequestInfo.url = newUrl;
 		}
 	};
 };
+
+/** Stream url to proxy url conversion END **/
