@@ -32,13 +32,13 @@ export const getRedirectUrl = (urlGenerator: UrlGenerator, requestUrl: string) =
 	const textToCheck = substringAfter(substringBefore(decodeURIComponent(requestUrl), "&"), "?url=");
 	if (textToCheck.includes(proxyUrl)) {
 		const endpoint = textToCheck.split("/").pop();
-		const newUrlParam = `${urlGenerator.getHlsUrl}/${endpoint}`;
+		const newUrlParam = `${urlGenerator.getHlsUrl()}/${endpoint}`;
 		requestUrl = decodeURIComponent(requestUrl).replace(textToCheck, newUrlParam);
 	}
 	if (requestUrl.startsWith(proxyUrl)) {
 		return requestUrl;
 	}
-	return `${proxyUrl}?url=${encodeURIComponent(requestUrl)}${headers != null ? `&headers=${encodeURIComponent(JSON.stringify(headers))}` : ""}`;
+	return `${proxyUrl}?url=${encodeURIComponent(requestUrl)}${headers ? `&headers=${encodeURIComponent(JSON.stringify(headers))}` : ""}`;
 };
 
 export const redirectHandler = (urlGenerator: UrlGenerator) => {
