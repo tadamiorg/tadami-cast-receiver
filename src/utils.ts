@@ -25,7 +25,7 @@ export function substringAfter(originalString: string, delimiter: string): strin
 
 export const getRedirectUrl = (urlGenerator: UrlGenerator, requestUrl: string) => {
 	const proxyUrl = urlGenerator.getProxyUrl();
-	if (proxyUrl == null) {
+	if (!proxyUrl) {
 		return requestUrl;
 	}
 	const headers = urlGenerator.getHeaders();

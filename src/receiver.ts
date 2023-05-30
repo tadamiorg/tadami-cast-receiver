@@ -14,8 +14,8 @@ playbackConfig.manifestRequestHandler = redirectHandler(urlGenerator);
 
 playerManager.setMessageInterceptor(cast.framework.messages.MessageType.LOAD, (loadRequestData: TadamiLoadRequestData) => {
 	if (loadRequestData.media && loadRequestData.media.contentUrl && loadRequestData.media.customData) {
+		urlGenerator.resetUrls();
 		if (loadRequestData.media.customData.proxyIp) {
-			urlGenerator.resetUrls();
 			urlGenerator.setProxyUrl(`http://${loadRequestData.media.customData!!.proxyIp}:8000`);
 			const lastSlashIndex = loadRequestData.media.contentUrl.lastIndexOf("/");
 			const hlsUrl = loadRequestData.media.contentUrl.substring(0, lastSlashIndex);
