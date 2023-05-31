@@ -25,9 +25,8 @@ export function substringAfter(originalString: string, delimiter: string): strin
 
 export const getRedirectUrl = (urlGenerator: UrlGenerator, requestUrl: string) => {
 	const proxyUrl = urlGenerator.getProxyUrl();
-	if (!proxyUrl) {
-		return requestUrl;
-	}
+	if (!proxyUrl) return requestUrl;
+
 	const headers = urlGenerator.getHeaders();
 	const textToCheck = substringAfter(substringBefore(decodeURIComponent(requestUrl), "&"), "?url=");
 	if (textToCheck.includes(proxyUrl)) {
@@ -35,9 +34,9 @@ export const getRedirectUrl = (urlGenerator: UrlGenerator, requestUrl: string) =
 		const newUrlParam = `${urlGenerator.getHlsUrl()}/${endpoint}`;
 		requestUrl = decodeURIComponent(requestUrl).replace(textToCheck, newUrlParam);
 	}
-	if (requestUrl.startsWith(proxyUrl)) {
-		return requestUrl;
-	}
+
+	if (requestUrl.startsWith(proxyUrl)) return requestUrl;
+
 	return `${proxyUrl}?url=${encodeURIComponent(requestUrl)}${headers ? `&headers=${encodeURIComponent(JSON.stringify(headers))}` : ""}`;
 };
 

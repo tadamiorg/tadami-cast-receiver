@@ -10,8 +10,8 @@ export interface TadamiRequestData {
 	proxyIp: string;
 	animeId: number;
 	episodeId: number;
-	availableSources: Array<StreamSource>;
-	selectedSource: StreamSource;
+	availableSources: string;
+	selectedSource: string;
 }
 
 export class TadamiMediaInformation extends MediaInformation {
