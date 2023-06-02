@@ -1,6 +1,11 @@
 import { NetworkRequestInfo } from "chromecast-caf-receiver/cast.framework";
 import { UrlGenerator } from "./urlGenerator";
 
+export enum ErrorCode {
+	UNKNOWN = 100298,
+	COMMUNICATION = 666,
+}
+
 /** String manipulation START **/
 
 export function substringBefore(originalString: string, delimiter: string) {

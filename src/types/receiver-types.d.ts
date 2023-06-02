@@ -14,6 +14,10 @@ export interface TadamiRequestData {
 	selectedSource: string;
 }
 
+export interface TadamiCastError {
+	errorCode?: number;
+}
+
 export class TadamiMediaInformation extends MediaInformation {
 	customData?: TadamiRequestData;
 }
