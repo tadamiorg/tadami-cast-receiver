@@ -5,7 +5,8 @@
 	"main": "",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build:dev": "npx webpack && npm run deploy:test",
+		"build:dev": "npx webpack --config webpack.config.dev.js && npm run deploy:test",
+		"build:prod": "npx webpack --config webpack.config.js && npm run deploy:prod",
 		"deploy:test": "firebase hosting:channel:deploy testcast",
 		"deploy:prod": "firebase deploy --only hosting"
 	},
