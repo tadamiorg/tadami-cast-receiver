@@ -5,19 +5,21 @@
 	"main": "",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build:dev": "npx webpack --config webpack.config.dev.js && npm run deploy:test",
-		"build:prod": "npx webpack --config webpack.config.js && npm run deploy:prod",
+		"scss": "sass src/scss:public/css",
+		"build:dev": "npx webpack --config webpack.config.dev.js && npm run scss && npm run deploy:test",
+		"build:prod": "npx webpack --config webpack.config.js && npm run scss && npm run deploy:prod",
 		"deploy:test": "firebase hosting:channel:deploy testcast",
 		"deploy:prod": "firebase deploy --only hosting"
 	},
 	"author": "",
 	"license": "ISC",
 	"devDependencies": {
-		"@types/node": "^20.2.4",
 		"@types/chromecast-caf-receiver": "^6.0.9",
+		"@types/node": "^20.2.4",
 		"typescript": "^5.0.4"
 	},
 	"dependencies": {
+		"sass": "^1.62.1",
 		"ts-loader": "^9.4.3",
 		"webpack": "^5.84.1",
 		"webpack-cli": "^5.1.1"
