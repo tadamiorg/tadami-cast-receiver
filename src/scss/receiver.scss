@@ -1,6 +1,11 @@
 cast-media-player {
 	--theme-hue: 100;
-	--progress-color: rgb(0, 255, 0);
-	--splash-image: url("http://some/image.png");
-	--splash-size: cover;
+	--progress-color: rgb(240, 36, 117);
+	--logo-image: url("../images/logo.svg");
+	--theme-hue: 339;
+}
+[lang="fr"] {
+	cast-media-player {
+		--logo-image: url("../images/logo-fr.svg");
+	}
 }
