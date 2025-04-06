@@ -4,8 +4,6 @@ import { UrlGenerator } from "./urlGenerator";
 import { ErrorCode, redirectHandler } from "./utils";
 import { StateHandler } from "./stateHandler";
 
-//@ts-ignore
-window.location.reload(true);
 const context = cast.framework.CastReceiverContext.getInstance();
 const playerManager = context.getPlayerManager();
 const playbackConfig = new cast.framework.PlaybackConfig();
@@ -17,29 +15,6 @@ const appState = new StateHandler();
 playbackConfig.licenseRequestHandler = redirectHandler(urlGenerator);
 playbackConfig.segmentRequestHandler = redirectHandler(urlGenerator);
 playbackConfig.manifestRequestHandler = redirectHandler(urlGenerator);
-
-// Debug Logger
-const castDebugLogger = cast.debug.CastDebugLogger.getInstance();
-const LOG_TAG = "MyAPP.LOG";
-
-castDebugLogger.setEnabled(true);
-
-// Show debug overlay.
-castDebugLogger.showDebugLogs(true);
-
-// Clear log messages on debug overlay.
-castDebugLogger.clearDebugLogs();
-
-// Set verbosity level for Core events.
-castDebugLogger.loggerLevelByEvents = {
-	"cast.framework.events.category.CORE": cast.framework.LoggerLevel.INFO,
-	"cast.framework.events.EventType.MEDIA_STATUS": cast.framework.LoggerLevel.DEBUG,
-};
-
-// Set verbosity level for custom tags.
-castDebugLogger.loggerLevelByTags = {
-	LOG_TAG: cast.framework.LoggerLevel.DEBUG, // display all levels
-};
 
 context.addEventListener(cast.framework.system.EventType.ERROR, (event) => {
 	const tadamiError: TadamiCastError = { errorCode: ErrorCode.COMMUNICATION };
@@ -58,13 +33,6 @@ playerManager.setMessageInterceptor(cast.framework.messages.MessageType.EDIT_TRA
 });
 
 playerManager.setMessageInterceptor(cast.framework.messages.MessageType.LOAD, (loadRequestData: LoadRequestData) => {
-	castDebugLogger.error(LOG_TAG, "Test error log");
-
-	castDebugLogger.warn(LOG_TAG, "Test warn log");
-
-	castDebugLogger.info(LOG_TAG, "Intercepting LOAD request", loadRequestData);
-
-	castDebugLogger.debug(LOG_TAG, "Test debug log");
 	const customLoadRequestData = loadRequestData as TadamiLoadRequestData;
 	if (!customLoadRequestData.media || !customLoadRequestData.media.contentId || !customLoadRequestData.media.contentUrl || !customLoadRequestData.media.customData) return customLoadRequestData;
 
