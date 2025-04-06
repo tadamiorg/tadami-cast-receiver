@@ -14,7 +14,7 @@
 	"author": "",
 	"license": "ISC",
 	"devDependencies": {
-		"@types/chromecast-caf-receiver": "^6.0.9",
+		"@types/chromecast-caf-receiver": "^6.0.21",
 		"@types/node": "^20.2.4",
 		"typescript": "^5.0.4"
 	},

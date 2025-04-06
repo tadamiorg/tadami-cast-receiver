@@ -1,3 +1,4 @@
+import { LoadRequestData } from "chromecast-caf-receiver/cast.framework.messages";
 import { StreamSource, TadamiCastError, TadamiLoadRequestData } from "./types/receiver-types";
 import { UrlGenerator } from "./urlGenerator";
 import { ErrorCode, redirectHandler } from "./utils";
@@ -23,30 +24,31 @@ playerManager.addEventListener(cast.framework.events.EventType.ERROR, (event) =>
 	context.sendCustomMessage(errorChannel, undefined, tadamiError);
 });
 
-playerManager.setMessageInterceptor(cast.framework.messages.MessageType.LOAD, (loadRequestData: TadamiLoadRequestData) => {
-	if (!loadRequestData.media || !loadRequestData.media.contentId || !loadRequestData.media.contentUrl || !loadRequestData.media.customData) return loadRequestData;
+playerManager.setMessageInterceptor(cast.framework.messages.MessageType.LOAD, (loadRequestData: LoadRequestData) => {
+	const customLoadRequestData = loadRequestData as TadamiLoadRequestData;
+	if (!customLoadRequestData.media || !customLoadRequestData.media.contentId || !customLoadRequestData.media.contentUrl || !customLoadRequestData.media.customData) return customLoadRequestData;
 
 	//@ts-ignore
-	delete loadRequestData.media.contentId;
+	delete customLoadRequestData.media.contentId;
 
 	urlGenerator.resetUrls();
 
-	if (!loadRequestData.media.customData.proxyIp) return loadRequestData;
+	if (!customLoadRequestData.media.customData.proxyIp) return customLoadRequestData;
 
-	urlGenerator.setProxyUrl(`http://${loadRequestData.media.customData!!.proxyIp}:8000`);
-	const lastSlashIndex = loadRequestData.media.contentUrl.lastIndexOf("/");
-	const hlsUrl = loadRequestData.media.contentUrl.substring(0, lastSlashIndex);
+	urlGenerator.setProxyUrl(`http://${customLoadRequestData.media.customData!!.proxyIp}:8000`);
+	const lastSlashIndex = customLoadRequestData.media.contentUrl.lastIndexOf("/");
+	const hlsUrl = customLoadRequestData.media.contentUrl.substring(0, lastSlashIndex);
 	urlGenerator.setHlsUrl(hlsUrl);
 
-	if (!loadRequestData.media.customData.selectedSource) return loadRequestData;
+	if (!customLoadRequestData.media.customData.selectedSource) return customLoadRequestData;
 
-	const source: StreamSource = JSON.parse(loadRequestData.media.customData.selectedSource);
+	const source: StreamSource = JSON.parse(customLoadRequestData.media.customData.selectedSource);
 
-	if (!source.headers) return loadRequestData;
+	if (!source.headers) return customLoadRequestData;
 
 	urlGenerator.setHeaders(source.headers);
 
-	return loadRequestData;
+	return customLoadRequestData;
 });
 
 context.start({

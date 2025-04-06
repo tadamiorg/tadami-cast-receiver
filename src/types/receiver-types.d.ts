@@ -1,4 +1,4 @@
-import { LoadRequestData, MediaInformation } from "chromecast-caf-receiver/cast.framework.messages";
+import { LoadRequestData, MediaInformation, MediaInformationCustomData } from "chromecast-caf-receiver/cast.framework.messages";
 
 export interface StreamSource {
 	url: string;
@@ -6,7 +6,7 @@ export interface StreamSource {
 	headers?: Map<string, string>;
 }
 
-export interface TadamiRequestData {
+export interface TadamiRequestData extends MediaInformationCustomData {
 	proxyIp: string;
 	animeId: number;
 	episodeId: number;
