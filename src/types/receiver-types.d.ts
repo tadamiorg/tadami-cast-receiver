@@ -12,6 +12,7 @@ export interface TadamiRequestData extends MediaInformationCustomData {
 	episodeId: number;
 	availableSources: string;
 	selectedSource: string;
+	episodeUrl: string;
 }
 
 export interface TadamiCastError {

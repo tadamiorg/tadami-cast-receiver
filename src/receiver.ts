@@ -2,14 +2,12 @@ import { EditTracksInfoRequestData, LoadRequestData } from "chromecast-caf-recei
 import { StreamSource, TadamiCastError, TadamiLoadRequestData } from "./types/receiver-types";
 import { UrlGenerator } from "./urlGenerator";
 import { ErrorCode, redirectHandler } from "./utils";
-import { StateHandler } from "./stateHandler";
 
 const context = cast.framework.CastReceiverContext.getInstance();
 const playerManager = context.getPlayerManager();
 const playbackConfig = new cast.framework.PlaybackConfig();
 const urlGenerator = new UrlGenerator();
 const errorChannel = "urn:x-cast:com.sf.tadami.error";
-const appState = new StateHandler();
 
 // Handles redirect to the android device proxy
 playbackConfig.licenseRequestHandler = redirectHandler(urlGenerator);
@@ -28,7 +26,6 @@ playerManager.addEventListener(cast.framework.events.EventType.ERROR, (event) =>
 
 playerManager.setMessageInterceptor(cast.framework.messages.MessageType.EDIT_TRACKS_INFO, (data: EditTracksInfoRequestData) => {
 	if (!data.activeTrackIds?.length) return data;
-	appState.setSelectedSubtitle(data.activeTrackIds?.[0]);
 	return data;
 });
 
@@ -40,11 +37,8 @@ playerManager.setMessageInterceptor(cast.framework.messages.MessageType.LOAD, (l
 	delete customLoadRequestData.media.contentId;
 
 	urlGenerator.resetUrls();
-	appState.resetState();
 
 	if (!customLoadRequestData.media.customData.proxyIp) return customLoadRequestData;
-
-	appState.setCustomData(customLoadRequestData.media.customData);
 
 	urlGenerator.setProxyUrl(`http://${customLoadRequestData.media.customData!!.proxyIp}:8000`);
 	const lastSlashIndex = customLoadRequestData.media.contentUrl.lastIndexOf("/");
