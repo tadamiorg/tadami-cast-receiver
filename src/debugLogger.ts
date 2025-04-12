@@ -16,7 +16,7 @@ castDebugLogger.loggerLevelByEvents = {
 
 // Set verbosity level for custom tags.
 castDebugLogger.loggerLevelByTags = {
-	LOG_TAG: cast.framework.LoggerLevel.DEBUG,
+	"MyAPP.LOG": cast.framework.LoggerLevel.DEBUG,
 };
 
 export { castDebugLogger, LOG_TAG };

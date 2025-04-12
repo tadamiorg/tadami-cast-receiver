@@ -31,6 +31,7 @@ playerManager.setMessageInterceptor(cast.framework.messages.MessageType.EDIT_TRA
 
 playerManager.setMessageInterceptor(cast.framework.messages.MessageType.LOAD, (loadRequestData: LoadRequestData) => {
 	const customLoadRequestData = loadRequestData as TadamiLoadRequestData;
+
 	if (!customLoadRequestData.media || !customLoadRequestData.media.contentId || !customLoadRequestData.media.contentUrl || !customLoadRequestData.media.customData) return customLoadRequestData;
 
 	//@ts-ignore
