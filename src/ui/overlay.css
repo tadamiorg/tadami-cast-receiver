@@ -1,0 +1,324 @@
+/* ---------------------------------------------------------------------------
+ * Controls scrim (values from Terebi's PlaybackScreen.kt)
+ * ------------------------------------------------------------------------- */
+
+.scrim {
+	position: absolute;
+	inset: 0;
+	background: var(--scrim);
+	color: var(--color-on-surface);
+	z-index: 20;
+}
+
+.scrim-top {
+	position: absolute;
+	top: var(--overlay-pad-v);
+	left: var(--overlay-pad-h);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-width: 70%;
+}
+
+.scrim-title {
+	font-size: var(--text-headline-small);
+	font-weight: 700;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.scrim-episode {
+	font-size: var(--text-title-medium);
+	font-style: italic;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Center transport: prev / play-pause (bigger) / next, 24px apart. */
+.transport {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	display: flex;
+	align-items: center;
+	gap: 24px;
+}
+
+.picon-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	color: var(--color-on-surface);
+	background: transparent;
+	transition:
+		transform 0.15s ease-out,
+		background-color 0.15s ease-out;
+}
+
+.picon-btn:focus {
+	background: var(--button-focus-bg);
+	transform: scale(1.2);
+}
+
+.picon-btn[aria-disabled='true'] {
+	color: var(--content-disabled);
+	background: transparent;
+}
+
+/* Bottom column: seek bar row, then the chip/actions row, 16px apart. */
+.scrim-bottom {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	padding: var(--overlay-pad-v) var(--overlay-pad-h);
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.seek-row {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.time-label {
+	font-size: var(--text-label-large);
+	font-weight: 500;
+	color: var(--color-on-surface);
+	flex: none;
+}
+
+.timeline {
+	position: relative;
+	flex: 1;
+	height: 28px;
+	display: flex;
+	align-items: center;
+}
+
+.timeline-track {
+	position: relative;
+	width: 100%;
+	height: 6px;
+	border-radius: 999px;
+	background: var(--track-bg);
+	transition: height 0.1s ease-out;
+}
+
+.timeline:focus .timeline-track {
+	height: 8px;
+}
+
+.timeline-fill {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	border-radius: 999px;
+	background: var(--color-primary);
+}
+
+.timeline-thumb {
+	position: absolute;
+	top: 50%;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--color-primary);
+	transform: translate(-50%, -50%);
+	transition:
+		width 0.1s ease-out,
+		height 0.1s ease-out;
+}
+
+.timeline:focus .timeline-thumb {
+	width: 18px;
+	height: 18px;
+}
+
+.chip-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.chip-group {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.chip {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 16px;
+	border-radius: 24px;
+	background: var(--chip-bg);
+	color: var(--color-on-surface);
+	transition:
+		transform 0.15s ease-out,
+		background-color 0.15s ease-out;
+}
+
+.chip:focus {
+	background: var(--chip-bg-focused);
+	transform: scale(1.1);
+}
+
+.chip[aria-disabled='true'] {
+	background: var(--chip-bg-disabled);
+	color: var(--content-disabled);
+}
+
+.chip-label {
+	font-size: var(--text-label-large);
+	font-weight: 500;
+	max-width: 220px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* The "+85s" button (tv-material3 Button look: pill, inverse focus). */
+.skip-btn {
+	padding: 10px 16px;
+	border-radius: 999px;
+	background: var(--chip-bg);
+	color: var(--color-on-surface);
+	font-size: var(--text-label-large);
+	font-weight: 500;
+	transition:
+		transform 0.15s ease-out,
+		background-color 0.15s ease-out;
+}
+
+.skip-btn:focus {
+	background: var(--color-on-surface);
+	color: var(--color-surface);
+	transform: scale(1.1);
+}
+
+/* ---------------------------------------------------------------------------
+ * Quick-seek overlay
+ * ------------------------------------------------------------------------- */
+
+.qs-root {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 20;
+}
+
+.qs-zone {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 50%;
+	background: var(--primary-tint);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.qs-forward {
+	right: 0;
+}
+
+.qs-back {
+	left: 0;
+}
+
+.qs-content {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+}
+
+.qs-chevrons {
+	display: flex;
+	gap: 2px;
+	color: #ffffff;
+}
+
+.qs-chevron {
+	display: flex;
+	animation: qs-pulse 400ms linear infinite alternate;
+}
+
+.qs-chevron.qs-rev svg {
+	transform: scaleX(-1);
+}
+
+@keyframes qs-pulse {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.qs-seconds {
+	font-size: var(--text-title-medium);
+	color: var(--color-on-surface);
+}
+
+.qs-bar {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	padding: 40px var(--overlay-pad-h);
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.qs-bar-track {
+	position: relative;
+	flex: 1;
+	height: 6px;
+	border-radius: 999px;
+	background: var(--track-bg);
+	overflow: hidden;
+}
+
+.qs-bar-fill {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	border-radius: 999px;
+	background: var(--color-primary);
+}
+
+/* ---------------------------------------------------------------------------
+ * Loading / buffering
+ * ------------------------------------------------------------------------- */
+
+.loading-overlay {
+	position: absolute;
+	inset: 0;
+	background: var(--loading-scrim);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 30;
+}
+
+.buffering-overlay {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 30;
+}

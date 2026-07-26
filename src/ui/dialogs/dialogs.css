@@ -1,0 +1,53 @@
+.dialog-backdrop {
+	position: absolute;
+	inset: 0;
+	background: var(--backdrop);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 40;
+}
+
+.dialog-surface {
+	width: 55%;
+	height: 85%;
+	background: var(--color-surface);
+	color: var(--color-on-surface);
+	padding: 24px;
+	display: flex;
+	flex-direction: column;
+	border-radius: 12px;
+}
+
+.dialog-title {
+	font-size: var(--text-title-medium);
+	font-weight: 500;
+	flex: none;
+}
+
+.dialog-list {
+	flex: 1;
+	overflow-y: auto;
+	margin-top: 4px;
+	scrollbar-width: none;
+}
+
+.dialog-list::-webkit-scrollbar {
+	display: none;
+}
+
+.dialog-row {
+	padding: 12px 16px;
+	margin: 4px 0;
+	font-size: var(--text-body-large);
+	border-radius: 8px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* tv-material3 clickable Surface: inverse colors when focused. */
+.dialog-row:focus {
+	background: var(--color-on-surface);
+	color: var(--color-surface);
+}

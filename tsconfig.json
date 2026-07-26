@@ -1,12 +1,7 @@
 {
-	"compilerOptions": {
-		"target": "ESNext",
-		"module": "CommonJS",
-		"lib": ["ESNext", "dom"],
-		"allowJs": true,
-		"outDir": "build",
-		"rootDir": ".",
-		"strict": true,
-		"noImplicitAny": true
-	}
+	"files": [],
+	"references": [
+		{ "path": "./tsconfig.app.json" },
+		{ "path": "./tsconfig.node.json" }
+	]
 }

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Tadami</title>
+		<!-- Preload the pinned Shaka build: CAF only injects it lazily on the FIRST LOAD, so on a
+		     cold cache its download (~1-2MB over TV Wi-Fi) would sit inside the user-visible load.
+		     Preloading overlaps it with receiver boot at no cost. Keep the version in sync with
+		     options.shakaVersion in src/cast/castController.ts. No crossorigin attribute — CAF
+		     injects a plain <script>, the request modes must match for the preload cache entry to
+		     be reused. -->
+		<link rel="preload" href="https://ajax.googleapis.com/ajax/libs/shaka-player/4.16.42/shaka-player.compiled.js" as="script" />
+		<!-- CAF receiver SDK must load before our bundle (module scripts run after parse). -->
+		<script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+		<script type="module" src="/src/main.tsx"></script>
+	</head>
+	<body>
+		<!-- Our OWN media surface, handed to CAF as options.mediaElement ("Default behavior is to use
+		     the first found media element in the page"). The SDK attaches its Shaka/MSE pipeline to
+		     whatever element it is given, so adaptive streaming still works — while the SDK's
+		     cast-media-player element is gone, and with it the built-in controls/metadata UI that
+		     has no suppression API. Everything visible is drawn by the Preact overlay in #app.
+		     The castMediaElement class is what the dev shim (src/dev/shim.ts) looks for, so `?shim`
+		     drives this same element instead of appending its own. -->
+		<video class="castMediaElement" playsinline></video>
+		<div id="app"></div>
+	</body>
+</html>
