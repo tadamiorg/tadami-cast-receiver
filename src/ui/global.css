@@ -1,0 +1,94 @@
+* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html,
+body {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	background: var(--color-background);
+	color: var(--color-on-background);
+	font-family: var(--font);
+	cursor: none; /* TV surface — no pointer */
+}
+
+/* Video surface: our own element (see index.html), driven by CAF through options.mediaElement. The
+ * SDK draws no UI of its own on a plain <video> — everything visible is the Preact overlay in #app.
+ * (The old cast-media-player rule and its ~15 custom properties are gone: they only recoloured the
+ * built-in UI, which had no suppression API.) */
+video.castMediaElement {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	background: #000;
+}
+
+/* CAF injects its own <cast-media-player> whenever playback starts or metadata loads, and draws a
+ * <tv-overlay> (metadata, progress bar, 30s-skip buttons) inside it. Since the media element is OURS,
+ * that host is pure chrome and can be hidden outright. The shadow content is handled separately in
+ * src/cast/hideNativeUi.ts (global CSS cannot reach into a shadow root), which also restores this
+ * element if it ever turns out to own the picture. */
+cast-media-player {
+	display: none !important;
+	opacity: 0 !important;
+	visibility: hidden !important;
+	pointer-events: none !important;
+}
+
+#app {
+	position: absolute;
+	inset: 0;
+	z-index: 10;
+}
+
+.root {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+}
+
+/* Roving-focus elements: real DOM focus, no native outline (styled per component). */
+[data-focusable] {
+	outline: none;
+}
+
+/* Material-style circular progress: 3px stroke, primary color. */
+.spinner {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	border: 3px solid transparent;
+	border-top-color: var(--color-primary);
+	border-right-color: var(--color-primary);
+	animation: spinner-rotate 1s linear infinite;
+}
+
+@keyframes spinner-rotate {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Blocking protocol-mismatch notice (error 104 flow). */
+.blocking-notice {
+	position: absolute;
+	inset: 0;
+	z-index: 100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--backdrop);
+}
+
+.blocking-notice > p {
+	max-width: 60%;
+	text-align: center;
+	font-size: var(--text-title-medium);
+	line-height: 1.5;
+	color: var(--color-on-surface);
+}

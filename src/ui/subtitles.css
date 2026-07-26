@@ -1,0 +1,26 @@
+.subtitle-layer {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 5;
+}
+
+.subtitle-cue {
+	position: absolute;
+	left: 4%;
+	right: 4%;
+	display: flex;
+	justify-content: center;
+}
+
+/* Two stacked layers (outline under, fill over) sharing one grid cell. */
+.subtitle-text {
+	display: grid;
+	text-align: center;
+	white-space: pre-line;
+}
+
+.subtitle-under,
+.subtitle-over {
+	grid-area: 1 / 1;
+}

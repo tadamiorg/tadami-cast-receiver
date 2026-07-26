@@ -1,0 +1,23 @@
+.idle {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	background: var(--color-background);
+}
+
+.idle-logo {
+	color: var(--color-on-background);
+}
+
+.idle-wordmark {
+	margin-top: 24px;
+	font-size: var(--text-display-small);
+	color: var(--color-on-background);
+}
+
+.idle .spinner {
+	margin-top: 32px;
+}

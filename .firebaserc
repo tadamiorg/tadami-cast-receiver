@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "tadami-cast-receiver"
+    "default": "tadami-cast-receiver-dev",
+    "dev": "tadami-cast-receiver-dev",
+    "prod": "tadami-cast-receiver"
   }
 }
