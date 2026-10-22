@@ -3,8 +3,7 @@
  *  - controls auto-hide after 5 s of inactivity (never while a dialog is open or ended),
  *    any key "pokes" the timer, BACK hides, UP on the transport row hides;
  *  - hidden-controls quick-seek: LEFT/RIGHT accumulate ±10 s, committed 500 ms after the
- *    last press (1.5 s when the phone sends seekbar previews); Enter commits immediately; any
- *    other key surfaces the controls;
+ *    last press; Enter commits immediately; any other key surfaces the controls;
  *  - dialogs (source / episodes / subtitles / audio);
  *  - loading & buffering overlays drawn above the controls, below the dialogs.
  */
@@ -12,7 +11,7 @@
 import { effect, signal } from '@preact/signals';
 import * as store from '../player/store';
 import * as tracks from '../player/tracks';
-import { PREVIEW_SCRUB_COMMIT_MS, previewEnd, previewHoldsCommit, previewScrub } from '../preview/seekPreview';
+import { previewEnd, previewScrub } from '../preview/seekPreview';
 import { sendNext, sendPrevious, sendSelectEpisode } from '../cast/channels';
 import { isBackKey, isEnterKey } from './focus';
 import { ControlsScrim } from './ControlsScrim';
@@ -129,10 +128,7 @@ function quickSeek(sign: 1 | -1): void {
 				? -SEEK_STEP_S
 				: accum - SEEK_STEP_S;
 	if (quickSeekCommitTimer !== null) clearTimeout(quickSeekCommitTimer);
-	quickSeekCommitTimer = setTimeout(
-		commitQuickSeek,
-		previewHoldsCommit() ? PREVIEW_SCRUB_COMMIT_MS : QUICK_SEEK_COMMIT_MS,
-	);
+	quickSeekCommitTimer = setTimeout(commitQuickSeek, QUICK_SEEK_COMMIT_MS);
 }
 
 // The quick-seek target is previewed like a seek-bar scrub (nothing when the phone makes no preview).

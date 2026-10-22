@@ -89,11 +89,6 @@ export class PreviewController {
 		this.source = null;
 	}
 
-	/** The phone said the current stream has no preview at all. */
-	get isOff(): boolean {
-		return this.off;
-	}
-
 	/** Previews can show for the current stream. */
 	get available(): boolean {
 		return this.enabled && !this.off && this.source !== null;

@@ -20,13 +20,6 @@ export interface PreviewView {
 /** Null when nothing is scrubbed or the phone makes no preview (the UI then stays as without previews). */
 export const previewView = signal<PreviewView | null>(null);
 
-/**
- * How long a scrub waits after the last key press before seeking, when the phone makes previews: long
- * enough to see the frame it sends (a few hundred ms to decode on the phone). Without previews the
- * seek bar and the quick seek keep their own shorter delays. Enter still seeks at once.
- */
-export const PREVIEW_SCRUB_COMMIT_MS = 1_500;
-
 /** Identity of the stream the TV plays, for the phone's cache and the stale-reply check. */
 export function previewSourceFor(episodeId: number, source: StreamSource): PreviewSource {
 	return {
@@ -43,11 +36,6 @@ const controller = new PreviewController({
 	send: (request) => send(request),
 	onChange: () => refresh(),
 });
-
-/** Whether a scrub now holds its seek for PREVIEW_SCRUB_COMMIT_MS: the phone makes previews for this load. */
-export function previewHoldsCommit(): boolean {
-	return store.seekPreview.peek() && !controller.isOff;
-}
 
 /** Plugs in the control-channel sender (channels.ts, before context.start()). */
 export function initSeekPreview(sender: (request: PreviewRequestMessage) => void): void {
