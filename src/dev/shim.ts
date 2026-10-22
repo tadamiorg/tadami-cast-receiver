@@ -85,6 +85,12 @@ class ShimPlayerManager {
 		this.interceptors.set(type, fn);
 	}
 
+	/** Per-load Shaka tuning: the shim's plain <video> has no Shaka to tune. */
+	setMediaPlaybackInfoHandler(_handler: AnyFn): void {}
+
+	/** The shim always plays into the page's own video element. */
+	setMediaElement(_element: HTMLMediaElement): void {}
+
 	getInterceptor(type: string): AnyFn | undefined {
 		return this.interceptors.get(type);
 	}
