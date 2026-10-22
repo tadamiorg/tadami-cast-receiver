@@ -5,6 +5,7 @@ import {
 	handlePreviewFrame,
 	initSeekPreview,
 	previewEnd,
+	previewHoldsCommit,
 	previewScrub,
 	previewSourceFor,
 	previewView,
@@ -79,7 +80,16 @@ describe('seekPreview wiring', () => {
 
 	it('hides the card once the phone says the stream has no preview', () => {
 		previewScrub(0);
+		expect(previewHoldsCommit()).toBe(true);
 		handlePreviewFrame({ type: 'previewFrame', requestId: sent[0].requestId, sourceId: sent[0].sourceId, step: 0, status: 'off', jpeg: null });
 		expect(previewView.value).toBeNull();
+		// Scrubs seek as fast as without previews again
+		expect(previewHoldsCommit()).toBe(false);
+	});
+
+	it('holds scrub commits only while the phone makes previews', () => {
+		expect(previewHoldsCommit()).toBe(true);
+		store.seekPreview.value = false;
+		expect(previewHoldsCommit()).toBe(false);
 	});
 });

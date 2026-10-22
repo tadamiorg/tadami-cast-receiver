@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import * as store from '../player/store';
-import { previewEnd, previewScrub } from '../preview/seekPreview';
+import { PREVIEW_SCRUB_COMMIT_MS, previewEnd, previewHoldsCommit, previewScrub } from '../preview/seekPreview';
 import { formatMinSec } from './timeFormat';
 import { SeekPreviewCard } from './SeekPreviewCard';
 import {
@@ -179,10 +179,10 @@ function SeekBarRow({ onSeek }: { onSeek: (ms: number) => void }) {
 		}
 	};
 
-	// Commit ~600 ms after the last LEFT/RIGHT press.
+	// Commit ~600 ms after the last LEFT/RIGHT press (longer with a preview to look at).
 	const scheduleCommit = () => {
 		clearCommitTimer();
-		commitTimer.current = setTimeout(commit, SCRUB_COMMIT_MS);
+		commitTimer.current = setTimeout(commit, previewHoldsCommit() ? PREVIEW_SCRUB_COMMIT_MS : SCRUB_COMMIT_MS);
 	};
 
 	useEffect(() => clearCommitTimer, []);
