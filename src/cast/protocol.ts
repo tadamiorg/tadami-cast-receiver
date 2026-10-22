@@ -113,9 +113,11 @@ export function parseSenderHandshake(raw: unknown): SenderHandshakeMessage | nul
 
 /**
  * Control messages over `urn:x-cast:com.sf.tadami.control`.
- * receiver → phone: "progress" | "save" | "next" | "previous" | "selectEpisode" | "state" | "previewRequest".
+ * receiver → phone: "progress" | "save" | "next" | "previous" | "selectEpisode" | "state" |
+ *   "previewSource" | "previewRequest".
  * phone → receiver: "selectSource" | "selectSubtitle" | "selectAudio" | "subtitleStyle" | "previewFrame".
- * The two preview messages have their own shapes (PreviewRequestMessage, PreviewFrameMessage).
+ * The preview messages have their own shapes (PreviewSourceMessage, PreviewRequestMessage,
+ * PreviewFrameMessage).
  */
 export interface TvControlMessage {
 	type: string;
@@ -150,8 +152,24 @@ export function parseControlMessage(raw: unknown): TvControlMessage | null {
 // Seekbar preview (control channel, only when both sides announced `seekPreview`)
 // ---------------------------------------------------------------------------
 
+export const PREVIEW_SOURCE_TYPE = 'previewSource';
 export const PREVIEW_REQUEST_TYPE = 'previewRequest';
 export const PREVIEW_FRAME_TYPE = 'previewFrame';
+
+/**
+ * receiver → phone: the stream the TV plays now (sent when it changes, and again when a phone
+ * connects). The phone prefetches its frames in the background — nearest the playback position
+ * first — and pushes them unsolicited; [steps] are the ones this receiver already holds, which the
+ * phone neither pushes again nor decodes for it. Same stream fields as PreviewRequestMessage.
+ */
+export interface PreviewSourceMessage {
+	type: typeof PREVIEW_SOURCE_TYPE;
+	sourceId: string;
+	url: string;
+	headers: Record<string, string> | null;
+	duration: number;
+	steps: number[];
+}
 
 /**
  * receiver → phone: the frame of preview step [step] (steps as in previewSteps.ts, from [duration])
@@ -179,7 +197,8 @@ export type PreviewStatus = 'ok' | 'none' | 'off';
 
 export interface PreviewFrameMessage {
 	type: typeof PREVIEW_FRAME_TYPE;
-	requestId: number;
+	/** The request answered; null for a frame the phone pushed on its own (prefetch). */
+	requestId: number | null;
 	sourceId: string;
 	step: number;
 	status: PreviewStatus;
@@ -200,7 +219,7 @@ export function parsePreviewFrame(raw: unknown): PreviewFrameMessage | null {
 		status === 'ok' ? (jpeg !== null ? 'ok' : 'none') : status === 'off' ? 'off' : 'none';
 	return {
 		type: PREVIEW_FRAME_TYPE,
-		requestId: asOptionalNumber(obj['requestId']) ?? -1,
+		requestId: asOptionalNumber(obj['requestId']),
 		sourceId,
 		step,
 		status: normalized,

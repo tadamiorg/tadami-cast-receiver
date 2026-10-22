@@ -252,6 +252,11 @@ describe('seekbar preview messages', () => {
 		expect(parsePreviewFrame(JSON.stringify(raw))).toEqual(expected);
 	});
 
+	it('reads a frame the phone pushed on its own (no request id)', () => {
+		expect(parsePreviewFrame({ type: 'previewFrame', sourceId: 's', step: 4, status: 'ok', jpeg: 'QUJD' })?.requestId).toBeNull();
+		expect(parsePreviewFrame({ type: 'previewFrame', requestId: null, sourceId: 's', step: 4, status: 'ok', jpeg: 'QUJD' })?.requestId).toBeNull();
+	});
+
 	it('treats an ok reply without data as frameless, and keeps "off"', () => {
 		expect(parsePreviewFrame({ type: 'previewFrame', requestId: 1, sourceId: 's', step: 0, status: 'ok' })?.status).toBe('none');
 		expect(parsePreviewFrame({ type: 'previewFrame', requestId: 1, sourceId: 's', step: 0, status: 'off', jpeg: 'x' })).toMatchObject({ status: 'off', jpeg: null });

@@ -2,11 +2,18 @@
  * Seekbar preview wiring: the PreviewController fed from the store (current stream, the phone's
  * `seekPreview` announcement, duration) and exposed to the UI as one signal. The seek bar and the
  * quick-seek overlay call previewScrub/previewEnd; channels.ts plugs in the control-channel sender
- * (initSeekPreview) and forwards `previewFrame` replies (handlePreviewFrame).
+ * (initSeekPreview) and forwards `previewFrame`s (handlePreviewFrame). The current stream is
+ * announced to the phone (`previewSource`) whenever it changes, so the phone prefetches its frames.
  */
 
-import { signal } from '@preact/signals';
-import type { PreviewFrameMessage, PreviewRequestMessage, StreamSource } from '../cast/protocol';
+import { effect, signal } from '@preact/signals';
+import {
+	PREVIEW_SOURCE_TYPE,
+	type PreviewFrameMessage,
+	type PreviewRequestMessage,
+	type PreviewSourceMessage,
+	type StreamSource,
+} from '../cast/protocol';
 import * as store from '../player/store';
 import { PreviewController, type PreviewSource } from './previewController';
 
@@ -29,8 +36,10 @@ export function previewSourceFor(episodeId: number, source: StreamSource): Previ
 	};
 }
 
-let send: (request: PreviewRequestMessage) => void = () => undefined;
+let send: (message: PreviewRequestMessage | PreviewSourceMessage) => void = () => undefined;
 let scrubPositionMs: number | null = null;
+/** The stream last announced to the phone (null: none yet, or reset). */
+let announcedId: string | null = null;
 
 const controller = new PreviewController({
 	send: (request) => send(request),
@@ -38,7 +47,7 @@ const controller = new PreviewController({
 });
 
 /** Plugs in the control-channel sender (channels.ts, before context.start()). */
-export function initSeekPreview(sender: (request: PreviewRequestMessage) => void): void {
+export function initSeekPreview(sender: (message: PreviewRequestMessage | PreviewSourceMessage) => void): void {
 	send = sender;
 }
 
@@ -49,6 +58,38 @@ function syncSource(): void {
 		store.seekPreview.peek(),
 	);
 }
+
+/**
+ * Tells the phone which stream the TV plays, so it prefetches and pushes its frames: once per stream,
+ * or again when [force]d (a phone connected or restarted: it may have lost its frames). Nothing when
+ * the phone makes no preview or the duration isn't known yet.
+ */
+export function announcePreviewSource(force = false): void {
+	syncSource();
+	const source = controller.currentSource;
+	const durationMs = store.durationMs.peek();
+	if (source === null || !controller.available || !(durationMs > 0)) return;
+	if (!force && source.id === announcedId) return;
+	announcedId = source.id;
+	send({
+		type: PREVIEW_SOURCE_TYPE,
+		sourceId: source.id,
+		url: source.url,
+		headers: source.headers,
+		duration: Math.round(durationMs),
+		steps: controller.answeredSteps,
+	});
+}
+
+// A new stream (LOAD, source switch) is announced once its duration is known.
+effect(() => {
+	void store.seekPreview.value;
+	void store.durationMs.value;
+	void store.sources.value;
+	void store.selectedSourceIndex.value;
+	void store.currentEpisodeId.value;
+	announcePreviewSource();
+});
 
 function refresh(): void {
 	const positionMs = scrubPositionMs;
@@ -75,13 +116,16 @@ export function previewEnd(): void {
 	refresh();
 }
 
-/** A `previewFrame` reply from the phone; one about another stream is dropped. */
+/** A `previewFrame` from the phone (a reply or a prefetched frame); one about another stream is dropped. */
 export function handlePreviewFrame(message: PreviewFrameMessage): void {
+	// Prefetched frames can come before any scrub: the controller must know the current stream
+	syncSource();
 	controller.onFrame(message);
 }
 
 /** New LOAD, source switch or teardown: the frames belong to the previous stream. */
 export function resetPreview(): void {
 	controller.reset();
+	announcedId = null;
 	refresh();
 }

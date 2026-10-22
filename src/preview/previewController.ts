@@ -4,9 +4,11 @@
  * control channel.
  *
  * Mirrors the phone player's preview (SeekPreviewPlayer / BucketRequests): frames are cached per
- * stream by preview step; only the step under the scrub position is asked for, one request at a
- * time, never a step already answered (a frame, or "none" — the phone gave up on it). Another stream
- * (new LOAD, source switch) drops everything, and replies about another stream are ignored.
+ * stream by preview step. Most arrive unsolicited — the phone prefetches every step while the TV
+ * plays — so a scrub usually finds its frame cached; otherwise only the step under the scrub
+ * position is asked for, one request at a time, never a step already answered (a frame, or "none" —
+ * the phone gave up on it). Another stream (new LOAD, source switch) drops everything, and frames
+ * about another stream are ignored.
  */
 
 import {
@@ -37,7 +39,8 @@ export interface PreviewControllerOptions {
 }
 
 export const PREVIEW_REQUEST_TIMEOUT_MS = 15_000;
-export const PREVIEW_MAX_ENTRIES = 300;
+/** Above the step count of any episode: 1% steps, and 30 s ones only past 50 min (400 = 3 h 20). */
+export const PREVIEW_MAX_ENTRIES = 400;
 
 interface InFlight {
 	requestId: number;
@@ -103,6 +106,16 @@ export class PreviewController {
 		return this.entries.size;
 	}
 
+	/** The steps answered for the current stream (frame or none), for the phone to skip. */
+	get answeredSteps(): number[] {
+		return [...this.entries.keys()].sort((a, b) => a - b);
+	}
+
+	/** The current stream, null before setSource. */
+	get currentSource(): PreviewSource | null {
+		return this.source;
+	}
+
 	/** The scrub position is [positionMs]: asks for its step unless answered or in flight. */
 	aim(positionMs: number, durationMs: number): void {
 		if (!this.available || !(durationMs > 0)) {
@@ -131,7 +144,10 @@ export class PreviewController {
 		return entry;
 	}
 
-	/** A `previewFrame` reply. False when it is about another stream (stale) and was dropped. */
+	/**
+	 * A `previewFrame`: a reply, or a frame the phone pushed (prefetch, null requestId). False when it
+	 * is about another stream (stale) and was dropped.
+	 */
 	onFrame(message: PreviewFrameMessage): boolean {
 		if (this.source === null || message.sourceId !== this.source.id) return false;
 		if (this.inFlight !== null && this.inFlight.requestId === message.requestId) {

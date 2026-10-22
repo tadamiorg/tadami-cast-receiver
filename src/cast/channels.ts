@@ -16,7 +16,7 @@ import * as store from '../player/store';
 import { selectAudio, selectSubtitle, switchSource } from '../player/tracks';
 import { debugLog } from './debug';
 import { flushPendingCrash } from './crashReporter';
-import { handlePreviewFrame, initSeekPreview } from '../preview/seekPreview';
+import { announcePreviewSource, handlePreviewFrame, initSeekPreview } from '../preview/seekPreview';
 import {
 	CONTROL_NAMESPACE,
 	HANDSHAKE_NAMESPACE,
@@ -26,6 +26,7 @@ import {
 	parsePreviewFrame,
 	parseSenderHandshake,
 	type PreviewRequestMessage,
+	type PreviewSourceMessage,
 	type ReceiverHandshakeMessage,
 	type TvControlMessage,
 } from './protocol';
@@ -65,13 +66,15 @@ function onHandshakeMessage(event: SystemMessage): void {
 		store.proxyBaseUrl.value = message.proxyBaseUrl;
 	}
 	sendHandshakeReply(event.senderId);
+	// A phone (re)binding — e.g. its cast service restarted without its frames: tell it the stream again
+	announcePreviewSource(true);
 }
 
 // ---------------------------------------------------------------------------
 // Control channel — outbound (mirror of Terebi's ControlSender)
 // ---------------------------------------------------------------------------
 
-function send(message: TvControlMessage | PreviewRequestMessage): void {
+function send(message: TvControlMessage | PreviewRequestMessage | PreviewSourceMessage): void {
 	try {
 		context().sendCustomMessage(CONTROL_NAMESPACE, undefined, message);
 	} catch {
@@ -194,9 +197,13 @@ export function initChannels(): void {
 
 	ctx.addCustomMessageListener(HANDSHAKE_NAMESPACE, onHandshakeMessage);
 	ctx.addCustomMessageListener(CONTROL_NAMESPACE, onControlMessage);
-	initSeekPreview((request) => {
-		debugLog(`control previewRequest #${request.requestId} step=${request.step}`);
-		send(request);
+	initSeekPreview((message) => {
+		debugLog(
+			message.type === 'previewRequest'
+				? `control previewRequest #${message.requestId} step=${message.step}`
+				: `control previewSource ${message.duration}ms has=${message.steps.length}`,
+		);
+		send(message);
 	});
 
 	ctx.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, (event) => {

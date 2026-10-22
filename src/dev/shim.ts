@@ -194,6 +194,9 @@ class ShimCastReceiverContext {
 		if (namespace === CONTROL_NAMESPACE && request.type === 'previewRequest') {
 			fakePhonePreview(message as ShimPreviewRequest);
 		}
+		if (namespace === CONTROL_NAMESPACE && request.type === 'previewSource') {
+			fakePhonePrefetch(message as ShimPreviewSource);
+		}
 	}
 
 	addEventListener(type: string, fn: AnyFn): void {
@@ -294,6 +297,12 @@ interface ShimPreviewRequest {
 	duration: number;
 }
 
+interface ShimPreviewSource {
+	sourceId: string;
+	duration: number;
+	steps: number[];
+}
+
 /** frames: ~0.6 s per frame; slow: ~3 s; none: every step frameless; off: no preview for the source. */
 const PREVIEW_MODES = ['frames', 'slow', 'none', 'off'] as const;
 let previewMode: (typeof PREVIEW_MODES)[number] = 'frames';
@@ -340,6 +349,36 @@ function fakePhonePreview(request: ShimPreviewRequest): void {
 		debugLog(`fake phone: step ${request.step} ${String(reply['status'])} ${String(reply['jpeg'] ?? '').length}B`);
 		shimContext.shimEmitMessage(CONTROL_NAMESPACE, reply);
 	}, delay);
+}
+
+let prefetchTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * The phone's background prefetch: every step pushed unsolicited (no requestId), nearest the
+ * playback position first, one every 150 ms (1 s in "slow"); none in "off".
+ */
+function fakePhonePrefetch(source: ShimPreviewSource): void {
+	if (prefetchTimer !== null) clearTimeout(prefetchTimer);
+	if (previewMode === 'off') return;
+	const stepMs = Math.min(30_000, Math.max(5_000, Math.floor(source.duration / 100)));
+	const last = Math.floor(Math.max(0, source.duration - 1) / stepMs);
+	const center = Math.min(last, Math.floor((video.currentTime * 1000) / stepMs));
+	const order: number[] = [center];
+	for (let d = 1; order.length <= last; d++) {
+		if (center + d <= last) order.push(center + d);
+		if (center - d >= 0) order.push(center - d);
+	}
+	const pending = order.filter((step) => !source.steps.includes(step));
+	debugLog(`fake phone: prefetching ${pending.length} of ${last + 1} steps from step ${center}`);
+	const pushNext = () => {
+		const step = pending.shift();
+		if (step === undefined) return;
+		const reply: Record<string, unknown> = { type: 'previewFrame', sourceId: source.sourceId, step, status: previewMode === 'none' ? 'none' : 'ok' };
+		if (reply['status'] === 'ok') reply['jpeg'] = drawFakeFrame(step, step * stepMs + stepMs / 2);
+		shimContext.shimEmitMessage(CONTROL_NAMESPACE, reply);
+		prefetchTimer = setTimeout(pushNext, previewMode === 'slow' ? 1000 : 150);
+	};
+	prefetchTimer = setTimeout(pushNext, 1000);
 }
 
 // ---------------------------------------------------------------------------

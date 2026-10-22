@@ -199,6 +199,36 @@ describe('PreviewController', () => {
 		expect(sent).toHaveLength(1);
 	});
 
+	it('caches frames the phone pushes on its own without touching the request in flight', () => {
+		controller.aim(0, HOUR);
+		const inFlight = sent[0];
+		expect(controller.onFrame({ type: 'previewFrame', requestId: null, sourceId: SOURCE_A.id, step: 7, status: 'ok', jpeg: 'P7' })).toBe(true);
+		expect(controller.onFrame({ type: 'previewFrame', requestId: null, sourceId: SOURCE_A.id, step: 8, status: 'none', jpeg: null })).toBe(true);
+		expect(controller.pendingRequests).toBe(1);
+		expect(controller.answeredSteps).toEqual([7, 8]);
+		// A scrub onto them: shown from the cache, nothing asked
+		controller.onFrame(frame(inFlight));
+		controller.aim(7 * 30_000, HOUR);
+		controller.aim(8 * 30_000, HOUR);
+		expect(sent).toHaveLength(1);
+		expect(controller.entryFor(7 * 30_000, HOUR)).toEqual({ kind: 'frame', src: 'data:image/jpeg;base64,P7' });
+	});
+
+	it('drops pushed frames of another stream', () => {
+		expect(controller.onFrame({ type: 'previewFrame', requestId: null, sourceId: SOURCE_B.id, step: 1, status: 'ok', jpeg: 'X' })).toBe(false);
+		expect(controller.cachedSteps).toBe(0);
+	});
+
+	it('holds every step of a long film', () => {
+		const film = new PreviewController({ send: () => undefined });
+		film.setSource(SOURCE_A, true);
+		// 3 h: 30 s steps
+		for (let step = 0; step < 360; step++) {
+			film.onFrame({ type: 'previewFrame', requestId: null, sourceId: SOURCE_A.id, step, status: 'ok', jpeg: 'x' });
+		}
+		expect(film.cachedSteps).toBe(360);
+	});
+
 	it('keeps the most recently used steps within its bound', () => {
 		const small = new PreviewController({ send: (r) => sent.push(r), maxEntries: 2 });
 		small.setSource(SOURCE_A, true);

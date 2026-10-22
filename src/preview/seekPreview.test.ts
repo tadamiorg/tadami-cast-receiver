@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { PreviewRequestMessage, StreamSource } from '../cast/protocol';
+import type { PreviewRequestMessage, PreviewSourceMessage, StreamSource } from '../cast/protocol';
 import * as store from '../player/store';
 import {
+	announcePreviewSource,
 	handlePreviewFrame,
 	initSeekPreview,
 	previewEnd,
@@ -19,10 +20,12 @@ function source(url: string, server = 'S', quality = '1080p'): StreamSource {
 
 describe('seekPreview wiring', () => {
 	let sent: PreviewRequestMessage[];
+	let announced: PreviewSourceMessage[];
 
 	beforeEach(() => {
 		sent = [];
-		initSeekPreview((r) => sent.push(r));
+		announced = [];
+		initSeekPreview((m) => (m.type === 'previewRequest' ? sent.push(m) : announced.push(m)));
 		store.resetToIdle();
 		resetPreview();
 		store.sources.value = [source('https://a.example/ep.m3u8'), source('https://b.example/ep.mp4', 'B', '720p')];
@@ -81,5 +84,59 @@ describe('seekPreview wiring', () => {
 		previewScrub(0);
 		handlePreviewFrame({ type: 'previewFrame', requestId: sent[0].requestId, sourceId: sent[0].sourceId, step: 0, status: 'off', jpeg: null });
 		expect(previewView.value).toBeNull();
+	});
+
+	it('announces the stream to the phone once, with its duration', () => {
+		expect(announced).toHaveLength(1);
+		expect(announced[0]).toEqual({
+			type: 'previewSource',
+			sourceId: '7|https://a.example/ep.m3u8|S|1080p',
+			url: 'https://a.example/ep.m3u8',
+			headers: { Referer: 'https://r.example/' },
+			duration: HOUR,
+			steps: [],
+		});
+		// The 2 Hz ticker nudging the duration doesn't announce it again
+		store.durationMs.value = HOUR + 250;
+		expect(announced).toHaveLength(1);
+	});
+
+	it('announces a source switch, and nothing without the phone making previews', () => {
+		resetPreview();
+		store.selectedSourceIndex.value = 1;
+		expect(announced.map((m) => m.sourceId)).toEqual([
+			'7|https://a.example/ep.m3u8|S|1080p',
+			'7|https://b.example/ep.mp4|B|720p',
+		]);
+		store.seekPreview.value = false;
+		resetPreview();
+		store.selectedSourceIndex.value = 0;
+		expect(announced).toHaveLength(2);
+	});
+
+	it('caches the frames the phone pushes before any scrub, so the scrub shows them at once', () => {
+		const sourceId = announced[0].sourceId;
+		for (const step of [0, 1, 2, 3]) {
+			handlePreviewFrame({ type: 'previewFrame', requestId: null, sourceId, step, status: 'ok', jpeg: `F${step}` });
+		}
+		previewScrub(95_000);
+		expect(previewView.value).toEqual({ positionMs: 95_000, frame: 'data:image/jpeg;base64,F3' });
+		expect(sent).toHaveLength(0);
+	});
+
+	it('drops pushed frames of another stream', () => {
+		handlePreviewFrame({ type: 'previewFrame', requestId: null, sourceId: '6|https://old.example/ep.m3u8|S|1080p', step: 3, status: 'ok', jpeg: 'OLD' });
+		previewScrub(95_000);
+		expect(previewView.value).toEqual({ positionMs: 95_000, frame: null });
+		expect(sent).toHaveLength(1);
+	});
+
+	it('tells a (re)connecting phone which steps it already holds', () => {
+		const sourceId = announced[0].sourceId;
+		handlePreviewFrame({ type: 'previewFrame', requestId: null, sourceId, step: 5, status: 'ok', jpeg: 'F5' });
+		handlePreviewFrame({ type: 'previewFrame', requestId: null, sourceId, step: 2, status: 'none', jpeg: null });
+		announcePreviewSource(true);
+		expect(announced).toHaveLength(2);
+		expect(announced[1].steps).toEqual([2, 5]);
 	});
 });
