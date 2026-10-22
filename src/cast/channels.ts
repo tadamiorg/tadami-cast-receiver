@@ -3,8 +3,8 @@
  *  - handshake: replies `{receiverType:"web", receiverProtocol, receiverVersion}` on
  *    SENDER_CONNECTED and on every handshake message (the reply is how the phone detects a
  *    web receiver); records `proxyBaseUrl` re-announced after phone service restarts.
- *  - control: outbound progress/save/next/previous/selectEpisode/state, inbound
- *    selectSource/selectSubtitle/selectAudio/subtitleStyle.
+ *  - control: outbound progress/save/next/previous/selectEpisode/state/previewRequest, inbound
+ *    selectSource/selectSubtitle/selectAudio/subtitleStyle/previewFrame.
  */
 
 import type { CastReceiverContext } from 'chromecast-caf-receiver/cast.framework';
@@ -16,12 +16,16 @@ import * as store from '../player/store';
 import { selectAudio, selectSubtitle, switchSource } from '../player/tracks';
 import { debugLog } from './debug';
 import { flushPendingCrash } from './crashReporter';
+import { handlePreviewFrame, initSeekPreview } from '../preview/seekPreview';
 import {
 	CONTROL_NAMESPACE,
 	HANDSHAKE_NAMESPACE,
+	RECEIVER_CAPABILITIES,
 	RECEIVER_PROTOCOL,
 	parseControlMessage,
+	parsePreviewFrame,
 	parseSenderHandshake,
+	type PreviewRequestMessage,
 	type ReceiverHandshakeMessage,
 	type TvControlMessage,
 } from './protocol';
@@ -44,6 +48,7 @@ export function sendHandshakeReply(senderId?: string): void {
 		receiverType: 'web',
 		receiverProtocol: RECEIVER_PROTOCOL,
 		receiverVersion: __RECEIVER_VERSION__,
+		capabilities: RECEIVER_CAPABILITIES,
 	};
 	try {
 		context().sendCustomMessage(HANDSHAKE_NAMESPACE, senderId, reply);
@@ -66,7 +71,7 @@ function onHandshakeMessage(event: SystemMessage): void {
 // Control channel — outbound (mirror of Terebi's ControlSender)
 // ---------------------------------------------------------------------------
 
-function send(message: TvControlMessage): void {
+function send(message: TvControlMessage | PreviewRequestMessage): void {
 	try {
 		context().sendCustomMessage(CONTROL_NAMESPACE, undefined, message);
 	} catch {
@@ -113,6 +118,13 @@ export function sendState(sourceIndex: number, subtitleIndex: number | null, aud
 // ---------------------------------------------------------------------------
 
 function onControlMessage(event: SystemMessage): void {
+	// Seekbar preview frames have their own shape (and a large base64 payload): handled apart.
+	const frame = parsePreviewFrame(event.data);
+	if (frame !== null) {
+		debugLog(`control previewFrame step=${frame.step} ${frame.status} ${frame.jpeg?.length ?? 0}B`);
+		handlePreviewFrame(frame);
+		return;
+	}
 	const message = parseControlMessage(event.data);
 	if (message === null) return;
 	debugLog(
@@ -182,6 +194,10 @@ export function initChannels(): void {
 
 	ctx.addCustomMessageListener(HANDSHAKE_NAMESPACE, onHandshakeMessage);
 	ctx.addCustomMessageListener(CONTROL_NAMESPACE, onControlMessage);
+	initSeekPreview((request) => {
+		debugLog(`control previewRequest #${request.requestId} step=${request.step}`);
+		send(request);
+	});
 
 	ctx.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, (event) => {
 		sendHandshakeReply((event as SenderConnectedEvent).senderId);

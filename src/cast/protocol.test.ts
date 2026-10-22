@@ -8,7 +8,9 @@ import {
 	hasPreviousEpisode,
 	parseControlMessage,
 	parseCustomData,
+	parsePreviewFrame,
 	parseSenderHandshake,
+	RECEIVER_CAPABILITIES,
 	sourceLabel,
 	type TvEpisode,
 } from './protocol';
@@ -137,6 +139,12 @@ describe('parseCustomData', () => {
 		expect(cd.senderProtocol).toBe(1);
 	});
 
+	it('reads the seekbar preview announcement, absent from older phones', () => {
+		expect(parseCustomData({ ...realisticCustomData(), seekPreview: true }).seekPreview).toBe(true);
+		expect(parseCustomData(realisticCustomData()).seekPreview).toBe(false);
+		expect(parseCustomData({ ...realisticCustomData(), seekPreview: 'yes' }).seekPreview).toBe(false);
+	});
+
 	it('handles null/undefined customData', () => {
 		expect(parseCustomData(null).isTadami).toBe(false);
 		expect(parseCustomData(undefined).isTadami).toBe(false);
@@ -229,5 +237,31 @@ describe('parseSenderHandshake / parseControlMessage', () => {
 		expect(msg?.subtitleIndex).toBe(-1);
 		expect(parseControlMessage({ noType: 1 })).toBeNull();
 		expect(parseControlMessage('garbage')).toBeNull();
+	});
+});
+
+describe('seekbar preview messages', () => {
+	it('announces the seekPreview capability', () => {
+		expect(RECEIVER_CAPABILITIES).toContain('seekPreview');
+	});
+
+	it('parses a frame reply, as an object or a JSON string', () => {
+		const raw = { type: 'previewFrame', requestId: 4, sourceId: 'src', step: 12, status: 'ok', jpeg: 'QUJD', width: 256, height: 144 };
+		const expected = { type: 'previewFrame', requestId: 4, sourceId: 'src', step: 12, status: 'ok', jpeg: 'QUJD' };
+		expect(parsePreviewFrame(raw)).toEqual(expected);
+		expect(parsePreviewFrame(JSON.stringify(raw))).toEqual(expected);
+	});
+
+	it('treats an ok reply without data as frameless, and keeps "off"', () => {
+		expect(parsePreviewFrame({ type: 'previewFrame', requestId: 1, sourceId: 's', step: 0, status: 'ok' })?.status).toBe('none');
+		expect(parsePreviewFrame({ type: 'previewFrame', requestId: 1, sourceId: 's', step: 0, status: 'off', jpeg: 'x' })).toMatchObject({ status: 'off', jpeg: null });
+		expect(parsePreviewFrame({ type: 'previewFrame', requestId: 1, sourceId: 's', step: 0, status: 'weird' })?.status).toBe('none');
+	});
+
+	it('rejects other messages and unusable frames', () => {
+		expect(parsePreviewFrame({ type: 'selectSource', sourceIndex: 1 })).toBeNull();
+		expect(parsePreviewFrame({ type: 'previewFrame', step: 1, status: 'ok', jpeg: 'x' })).toBeNull();
+		expect(parsePreviewFrame({ type: 'previewFrame', sourceId: 's', step: -1, status: 'ok', jpeg: 'x' })).toBeNull();
+		expect(parsePreviewFrame('garbage')).toBeNull();
 	});
 });

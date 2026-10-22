@@ -1,11 +1,12 @@
 /**
  * Hidden-controls quick-seek feedback (mirrors Terebi's QuickSeekOverlay): a primary-tinted
  * flash covering the seeked half with three staggered pulsing chevrons + the accumulated
- * ±seconds, plus a minimal bottom timeline.
+ * ±seconds, plus a minimal bottom timeline with the seekbar preview card over the target.
  */
 
 import { durationMs } from '../player/store';
 import { PlayArrowIcon } from './icons';
+import { SeekPreviewCard } from './SeekPreviewCard';
 import { formatMinSec } from './timeFormat';
 import './overlay.css';
 
@@ -37,8 +38,11 @@ export function QuickSeekOverlay({ accumSec, positionMs }: { accumSec: number; p
 			</div>
 			<div class="qs-bar">
 				<span class="time-label">{formatMinSec(positionMs)}</span>
-				<div class="qs-bar-track">
-					<div class="qs-bar-fill" style={{ width: `${fraction * 100}%` }} />
+				<div class="qs-bar-timeline">
+					<div class="qs-bar-track">
+						<div class="qs-bar-fill" style={{ width: `${fraction * 100}%` }} />
+					</div>
+					<SeekPreviewCard fraction={fraction} />
 				</div>
 				<span class="time-label">{formatMinSec(duration)}</span>
 			</div>

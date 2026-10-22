@@ -184,6 +184,10 @@ class ShimCastReceiverContext {
 
 	sendCustomMessage(namespace: string, _senderId: string | undefined, message: unknown): void {
 		debugLog(`→ ${namespace.split('.').pop()}: ${JSON.stringify(message)}`);
+		const request = message as { type?: string };
+		if (namespace === CONTROL_NAMESPACE && request.type === 'previewRequest') {
+			fakePhonePreview(message as ShimPreviewRequest);
+		}
 	}
 
 	addEventListener(type: string, fn: AnyFn): void {
@@ -272,6 +276,67 @@ class PlaybackConfig {
 };
 
 // ---------------------------------------------------------------------------
+// Fake phone seekbar preview: answers `previewRequest`s with drawn frames
+// ---------------------------------------------------------------------------
+
+const CONTROL_NAMESPACE = 'urn:x-cast:com.sf.tadami.control';
+
+interface ShimPreviewRequest {
+	requestId: number;
+	sourceId: string;
+	step: number;
+	duration: number;
+}
+
+/** frames: ~0.6 s per frame; slow: ~3 s; none: every step frameless; off: no preview for the source. */
+const PREVIEW_MODES = ['frames', 'slow', 'none', 'off'] as const;
+let previewMode: (typeof PREVIEW_MODES)[number] = 'frames';
+
+/** A 256x144 JPEG (base64) standing in for a decoded frame: the step and its time on a colored ground. */
+function drawFakeFrame(step: number, positionMs: number): string {
+	const canvas = document.createElement('canvas');
+	canvas.width = 256;
+	canvas.height = 144;
+	const g = canvas.getContext('2d');
+	if (g === null) return '';
+	const hue = (step * 37) % 360;
+	const gradient = g.createLinearGradient(0, 0, 256, 144);
+	gradient.addColorStop(0, `hsl(${hue}, 60%, 35%)`);
+	gradient.addColorStop(1, `hsl(${(hue + 60) % 360}, 60%, 15%)`);
+	g.fillStyle = gradient;
+	g.fillRect(0, 0, 256, 144);
+	g.fillStyle = 'rgba(255,255,255,0.9)';
+	g.font = 'bold 34px sans-serif';
+	g.textAlign = 'center';
+	g.fillText(`Step ${step}`, 128, 70);
+	const total = Math.floor(positionMs / 1000);
+	g.font = '20px monospace';
+	g.fillText(`${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`, 128, 104);
+	return canvas.toDataURL('image/jpeg', 0.8).split(',')[1] ?? '';
+}
+
+function fakePhonePreview(request: ShimPreviewRequest): void {
+	const delay = previewMode === 'slow' ? 3000 : previewMode === 'frames' ? 600 : 300;
+	setTimeout(() => {
+		const stepMs = Math.min(30_000, Math.max(5_000, Math.floor(request.duration / 100)));
+		const reply: Record<string, unknown> = {
+			type: 'previewFrame',
+			requestId: request.requestId,
+			sourceId: request.sourceId,
+			step: request.step,
+			status: previewMode === 'none' ? 'none' : previewMode === 'off' ? 'off' : 'ok',
+		};
+		if (reply['status'] === 'ok') {
+			reply['jpeg'] = drawFakeFrame(request.step, request.step * stepMs + stepMs / 2);
+			reply['width'] = 256;
+			reply['height'] = 144;
+		}
+		debugLog(`fake phone: step ${request.step} ${String(reply['status'])} ${String(reply['jpeg'] ?? '').length}B`);
+		shimContext.shimEmitMessage(CONTROL_NAMESPACE, reply);
+	}, delay);
+}
+
+// ---------------------------------------------------------------------------
 // Canned LOAD fixture (realistic wire shape: double-encoded customData)
 // ---------------------------------------------------------------------------
 
@@ -358,6 +423,8 @@ function buildFixtureLoad(): any {
 			italic: false,
 		}),
 		// No proxyBaseUrl in the shim: raw URLs play directly in desktop Chrome.
+		// The fake phone below answers the seekbar preview requests.
+		seekPreview: true,
 	};
 	media.tracks = [
 		{ trackId: 1, type: TrackType.TEXT, trackContentId: VTT_EN, trackContentType: 'text/vtt', language: 'en', name: 'English' },
@@ -392,12 +459,13 @@ function buildPanel(): void {
 	const row = document.createElement('div');
 	row.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;';
 
-	const button = (label: string, onClick: () => void) => {
+	const button = (label: string, onClick: () => void): HTMLButtonElement => {
 		const b = document.createElement('button');
 		b.textContent = label;
 		b.style.cssText = 'font:11px monospace;padding:2px 6px;cursor:pointer;';
 		b.addEventListener('click', onClick);
 		row.appendChild(b);
+		return b;
 	};
 
 	button('connect', () => shimContext.shimConnectSender());
@@ -423,6 +491,11 @@ function buildPanel(): void {
 		}),
 	);
 	button('disconnect', () => shimContext.shimDisconnectSender());
+	const previewButton = button(`preview: ${previewMode}`, () => {
+		previewMode = PREVIEW_MODES[(PREVIEW_MODES.indexOf(previewMode) + 1) % PREVIEW_MODES.length];
+		previewButton.textContent = `preview: ${previewMode}`;
+		debugLog(`fake phone preview mode: ${previewMode} (applies from the next request; LOAD again to reset)`);
+	});
 
 	panel.appendChild(row);
 	logEl = document.createElement('pre');

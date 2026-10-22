@@ -81,11 +81,20 @@ export interface SenderHandshakeMessage {
 	proxyBaseUrl?: string;
 }
 
+/**
+ * Optional features this receiver announces in its handshake reply. Additive: a phone that does
+ * not know a capability ignores it, and the receiver only uses one the phone announced too.
+ */
+export const SEEK_PREVIEW_CAPABILITY = 'seekPreview';
+export const RECEIVER_CAPABILITIES: readonly string[] = [SEEK_PREVIEW_CAPABILITY];
+
 /** Receiver → phone reply. Only the web receiver sends this — its absence means native. */
 export interface ReceiverHandshakeMessage {
 	receiverType: 'web';
 	receiverProtocol: number;
 	receiverVersion: string;
+	/** Optional features (see RECEIVER_CAPABILITIES); absent from older receivers. */
+	capabilities: readonly string[];
 }
 
 export function parseSenderHandshake(raw: unknown): SenderHandshakeMessage | null {
@@ -104,8 +113,9 @@ export function parseSenderHandshake(raw: unknown): SenderHandshakeMessage | nul
 
 /**
  * Control messages over `urn:x-cast:com.sf.tadami.control`.
- * receiver → phone: "progress" | "save" | "next" | "previous" | "selectEpisode" | "state".
- * phone → receiver: "selectSource" | "selectSubtitle" | "selectAudio" | "subtitleStyle".
+ * receiver → phone: "progress" | "save" | "next" | "previous" | "selectEpisode" | "state" | "previewRequest".
+ * phone → receiver: "selectSource" | "selectSubtitle" | "selectAudio" | "subtitleStyle" | "previewFrame".
+ * The two preview messages have their own shapes (PreviewRequestMessage, PreviewFrameMessage).
  */
 export interface TvControlMessage {
 	type: string;
@@ -133,6 +143,68 @@ export function parseControlMessage(raw: unknown): TvControlMessage | null {
 		subtitleIndex: asOptionalNumber(obj['subtitleIndex']),
 		audioIndex: asOptionalNumber(obj['audioIndex']),
 		subtitleStyle: normalizeSubtitleStyle(obj['subtitleStyle']),
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Seekbar preview (control channel, only when both sides announced `seekPreview`)
+// ---------------------------------------------------------------------------
+
+export const PREVIEW_REQUEST_TYPE = 'previewRequest';
+export const PREVIEW_FRAME_TYPE = 'previewFrame';
+
+/**
+ * receiver → phone: the frame of preview step [step] (steps as in previewSteps.ts, from [duration])
+ * of the stream the TV plays. [url] + [headers] are the current source's, as the phone sent them —
+ * the phone decodes that stream (or the downloaded file behind a `/local-` url). [sourceId] is opaque
+ * to the phone: it scopes its frame cache and is echoed back so stale replies can be dropped.
+ */
+export interface PreviewRequestMessage {
+	type: typeof PREVIEW_REQUEST_TYPE;
+	requestId: number;
+	sourceId: string;
+	url: string;
+	headers: Record<string, string> | null;
+	step: number;
+	duration: number;
+}
+
+/**
+ * phone → receiver reply to a PreviewRequestMessage.
+ *  - "ok": [jpeg] is the step's frame (base64 JPEG, about 256 px wide);
+ *  - "none": this step has no frame (decode timed out) — never asked again for this source;
+ *  - "off": no preview for this source (setting off, Wi-Fi only, the stream can't be decoded).
+ */
+export type PreviewStatus = 'ok' | 'none' | 'off';
+
+export interface PreviewFrameMessage {
+	type: typeof PREVIEW_FRAME_TYPE;
+	requestId: number;
+	sourceId: string;
+	step: number;
+	status: PreviewStatus;
+	jpeg: string | null;
+}
+
+/** Tolerant parse of a `previewFrame` control message; null for anything else or an unusable one. */
+export function parsePreviewFrame(raw: unknown): PreviewFrameMessage | null {
+	const obj = asObject(raw) ?? (typeof raw === 'string' ? asObject(tryJsonParse(raw)) : null);
+	if (!obj || obj['type'] !== PREVIEW_FRAME_TYPE) return null;
+	const sourceId = obj['sourceId'];
+	const step = asOptionalNumber(obj['step']);
+	if (typeof sourceId !== 'string' || step === null || step < 0) return null;
+	const status = obj['status'];
+	const jpeg = typeof obj['jpeg'] === 'string' && obj['jpeg'] !== '' ? obj['jpeg'] : null;
+	// A frame without data is a frame the phone couldn't give.
+	const normalized: PreviewStatus =
+		status === 'ok' ? (jpeg !== null ? 'ok' : 'none') : status === 'off' ? 'off' : 'none';
+	return {
+		type: PREVIEW_FRAME_TYPE,
+		requestId: asOptionalNumber(obj['requestId']) ?? -1,
+		sourceId,
+		step,
+		status: normalized,
+		jpeg: normalized === 'ok' ? jpeg : null,
 	};
 }
 
@@ -244,6 +316,8 @@ export interface ParsedCustomData {
 	theme: TvThemeColors | null;
 	subtitleStyle: CastSubtitleStyle | null;
 	proxyBaseUrl: string | null;
+	/** The phone makes seekbar preview frames for this load (its "Seekbar preview" setting is on). */
+	seekPreview: boolean;
 }
 
 /**
@@ -274,6 +348,7 @@ export function parseCustomData(raw: unknown): ParsedCustomData {
 		theme: parseStringifiedField(obj['theme'], normalizeThemeColors),
 		subtitleStyle: parseStringifiedField(obj['subtitleStyle'], normalizeSubtitleStyle),
 		proxyBaseUrl: asOptionalString(obj['proxyBaseUrl']) ?? null,
+		seekPreview: obj['seekPreview'] === true,
 	};
 }
 

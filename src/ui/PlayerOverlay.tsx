@@ -11,6 +11,7 @@
 import { effect, signal } from '@preact/signals';
 import * as store from '../player/store';
 import * as tracks from '../player/tracks';
+import { previewEnd, previewScrub } from '../preview/seekPreview';
 import { sendNext, sendPrevious, sendSelectEpisode } from '../cast/channels';
 import { isBackKey, isEnterKey } from './focus';
 import { ControlsScrim } from './ControlsScrim';
@@ -129,6 +130,13 @@ function quickSeek(sign: 1 | -1): void {
 	if (quickSeekCommitTimer !== null) clearTimeout(quickSeekCommitTimer);
 	quickSeekCommitTimer = setTimeout(commitQuickSeek, QUICK_SEEK_COMMIT_MS);
 }
+
+// The quick-seek target is previewed like a seek-bar scrub (nothing when the phone makes no preview).
+effect(() => {
+	const target = quickSeekMs.value;
+	if (target !== null) previewScrub(target);
+	else previewEnd();
+});
 
 // ---------------------------------------------------------------------------
 // Preview key interceptor (registered with focus.ts from main.tsx)

@@ -10,6 +10,7 @@ import { sendSave, sendState } from '../cast/channels';
 import { reportCastError } from '../cast/errorReporter';
 import { debugLog } from '../cast/debug';
 import { CastErrorCode } from '../cast/protocol';
+import { resetPreview } from '../preview/seekPreview';
 import { allAudioHls, audioLanguageTags, playbackForSource } from './hlsMaster';
 import * as store from './store';
 import { setSubtitleTrack } from './subtitles/subtitleEngine';
@@ -201,6 +202,8 @@ export function switchSource(index: number): void {
 		store.selectedSubtitleIndex.value = null;
 	}
 	applySubtitleSelection();
+	// Preview frames belong to the previous source.
+	resetPreview();
 
 	store.ended.value = false;
 	store.setLoading(true, 'Switching source…');

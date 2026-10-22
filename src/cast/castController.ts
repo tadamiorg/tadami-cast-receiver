@@ -31,6 +31,7 @@ import {
 import { allAudioHls, playbackForSource } from '../player/hlsMaster';
 import { initSubtitleEngine } from '../player/subtitles/subtitleEngine';
 import { wrapRequestUrl } from '../proxy/proxyUrl';
+import { resetPreview } from '../preview/seekPreview';
 import { initChannels } from './channels';
 import { debugLog, isDebug } from './debug';
 import { hideNativeUi } from './hideNativeUi';
@@ -184,6 +185,7 @@ function interceptLoad(request: LoadRequestData): LoadRequestData | null {
 	store.currentEpisodeId.value = cd.episodeId;
 	if (cd.theme !== null) store.theme.value = cd.theme;
 	if (cd.subtitleStyle !== null) store.subtitleStyle.value = cd.subtitleStyle;
+	store.seekPreview.value = cd.seekPreview;
 	store.hasMedia.value = true;
 
 	if (!duplicate) {
@@ -203,6 +205,8 @@ function interceptLoad(request: LoadRequestData): LoadRequestData | null {
 		store.ended.value = false;
 		store.setLoading(true, 'Loading…');
 		heartbeatsSent = 0;
+		// Preview frames belong to the previous stream.
+		resetPreview();
 	} else {
 		request.currentTime = Math.max(0, pm.getCurrentTimeSec() || 0);
 	}
@@ -445,6 +449,7 @@ export function startCastController(): void {
 			}
 			setLoadedContentUrl(null);
 			store.resetToIdle();
+			resetPreview();
 		}
 	});
 

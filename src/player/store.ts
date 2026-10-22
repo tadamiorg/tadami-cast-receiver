@@ -103,6 +103,8 @@ export const subtitleStyle = signal<CastSubtitleStyle>(DEFAULT_SUBTITLE_STYLE);
 /** Phone-local proxy base URL, from LOAD customData and/or handshake messages. */
 export const proxyBaseUrl = signal<string | null>(null);
 export const userAgent = signal<string | null>(null);
+/** The phone makes seekbar preview frames for the current load (LOAD customData `seekPreview`). */
+export const seekPreview = signal(false);
 
 /** Non-null blocks the whole UI with a protocol-mismatch notice (error 104 flow). */
 export const blockingNotice = signal<string | null>(null);
@@ -138,4 +140,5 @@ export function resetToIdle(): void {
 	episodes.value = [];
 	displayMode.value = 'NUMBER';
 	currentEpisodeId.value = 0;
+	seekPreview.value = false;
 }

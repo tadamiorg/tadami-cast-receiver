@@ -7,7 +7,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import * as store from '../player/store';
+import { previewEnd, previewScrub } from '../preview/seekPreview';
 import { formatMinSec } from './timeFormat';
+import { SeekPreviewCard } from './SeekPreviewCard';
 import {
 	AudiotrackIcon,
 	PauseIcon,
@@ -185,6 +187,13 @@ function SeekBarRow({ onSeek }: { onSeek: (ms: number) => void }) {
 
 	useEffect(() => clearCommitTimer, []);
 
+	// Seekbar preview of the scrubbed position (nothing when the phone makes none).
+	useEffect(() => {
+		if (scrubMs !== null) previewScrub(scrubMs);
+		else previewEnd();
+	}, [scrubMs]);
+	useEffect(() => previewEnd, []);
+
 	const onKeyDown = (event: KeyboardEvent) => {
 		if (!seekable) return;
 		let handled = true;
@@ -220,6 +229,7 @@ function SeekBarRow({ onSeek }: { onSeek: (ms: number) => void }) {
 					<div class="timeline-fill" style={{ width: `${fraction * 100}%` }} />
 				</div>
 				{seekable && <div class="timeline-thumb" style={{ left: `${fraction * 100}%` }} />}
+				{scrubMs !== null && <SeekPreviewCard fraction={fraction} />}
 			</div>
 			<span class="time-label">{formatMinSec(duration)}</span>
 		</div>
