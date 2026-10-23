@@ -55,11 +55,15 @@ describe('seekPreview wiring', () => {
 		expect(previewView.value).toBeNull();
 	});
 
-	it('shows nothing without the phone announcing previews (old phone or setting off)', () => {
+	it('shows the time alone without the phone announcing previews (a streamed episode, old phone, setting off)', () => {
 		store.seekPreview.value = false;
 		previewScrub(95_000);
-		expect(previewView.value).toBeNull();
+		expect(previewView.value).toEqual({ positionMs: 95_000, frame: null });
 		expect(sent).toHaveLength(0);
+		previewScrub(1_200_000);
+		expect(previewView.value).toEqual({ positionMs: 1_200_000, frame: null });
+		previewEnd();
+		expect(previewView.value).toBeNull();
 	});
 
 	it('forgets the frames of the previous source and drops its replies', () => {
@@ -80,10 +84,13 @@ describe('seekPreview wiring', () => {
 		expect(previewView.value).toEqual({ positionMs: 0, frame: null });
 	});
 
-	it('hides the card once the phone says the stream has no preview', () => {
+	it('shows the time alone once the phone says the stream has no preview', () => {
 		previewScrub(0);
 		handlePreviewFrame({ type: 'previewFrame', requestId: sent[0].requestId, sourceId: sent[0].sourceId, step: 0, status: 'off', jpeg: null });
-		expect(previewView.value).toBeNull();
+		expect(previewView.value).toEqual({ positionMs: 0, frame: null });
+		previewScrub(95_000);
+		expect(previewView.value).toEqual({ positionMs: 95_000, frame: null });
+		expect(sent).toHaveLength(1);
 	});
 
 	it('announces the stream to the phone once, with its duration', () => {

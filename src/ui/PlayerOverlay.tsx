@@ -131,7 +131,7 @@ function quickSeek(sign: 1 | -1): void {
 	quickSeekCommitTimer = setTimeout(commitQuickSeek, QUICK_SEEK_COMMIT_MS);
 }
 
-// The quick-seek target is previewed like a seek-bar scrub (nothing when the phone makes no preview).
+// The quick-seek target is previewed like a seek-bar scrub (its time alone when the phone makes no preview).
 effect(() => {
 	const target = quickSeekMs.value;
 	if (target !== null) previewScrub(target);

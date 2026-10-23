@@ -4,6 +4,8 @@
  * quick-seek overlay call previewScrub/previewEnd; channels.ts plugs in the control-channel sender
  * (initSeekPreview) and forwards `previewFrame`s (handlePreviewFrame). The current stream is
  * announced to the phone (`previewSource`) whenever it changes, so the phone prefetches its frames.
+ * A stream the phone makes no preview for (a streamed episode, an older phone, the setting off)
+ * still shows the scrubbed time, alone.
  */
 
 import { effect, signal } from '@preact/signals';
@@ -24,7 +26,7 @@ export interface PreviewView {
 	frame: string | null;
 }
 
-/** Null when nothing is scrubbed or the phone makes no preview (the UI then stays as without previews). */
+/** Null when nothing is scrubbed; the time alone when the phone makes no preview for the stream. */
 export const previewView = signal<PreviewView | null>(null);
 
 /** Identity of the stream the TV plays, for the phone's cache and the stale-reply check. */
@@ -93,11 +95,12 @@ effect(() => {
 
 function refresh(): void {
 	const positionMs = scrubPositionMs;
-	if (positionMs === null || !controller.available) {
+	if (positionMs === null) {
 		previewView.value = null;
 		return;
 	}
-	const entry = controller.entryFor(positionMs, store.durationMs.peek());
+	// A frame only when it is there already: never waited for, the time shows meanwhile
+	const entry = controller.available ? controller.entryFor(positionMs, store.durationMs.peek()) : undefined;
 	previewView.value = { positionMs, frame: entry?.kind === 'frame' ? entry.src : null };
 }
 

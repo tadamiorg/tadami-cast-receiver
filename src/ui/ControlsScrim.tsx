@@ -187,7 +187,7 @@ function SeekBarRow({ onSeek }: { onSeek: (ms: number) => void }) {
 
 	useEffect(() => clearCommitTimer, []);
 
-	// Seekbar preview of the scrubbed position (nothing when the phone makes none).
+	// Seekbar preview of the scrubbed position (its time alone when the phone makes none).
 	useEffect(() => {
 		if (scrubMs !== null) previewScrub(scrubMs);
 		else previewEnd();

@@ -1,8 +1,8 @@
 /**
  * The seekbar preview card (the phone player's SeekPreviewThumbnail, TV-sized): the frame of the
  * scrubbed preview step above the thumb with the scrubbed time under it, or the time alone while the
- * frame loads or when the step has none. Drawn inside a positioned timeline, centred over
- * [fraction] and kept within it. Renders nothing when the phone makes no preview.
+ * frame loads, when the step has none or when the phone makes no preview for the stream (a
+ * streamed episode). Drawn inside a positioned timeline, centred over [fraction] and kept within it.
  */
 
 import { previewView } from '../preview/seekPreview';
